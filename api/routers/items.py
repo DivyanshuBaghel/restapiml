@@ -27,7 +27,12 @@ async def list_items(
     if category:
         query["item_category"] = {"$regex": category, "$options": "i"}
     if tier:
-        query["item_tier"] = tier
+        # DB might have stored tier as string or int
+        try:
+            tier_int = int(tier)
+            query["item_tier"] = {"$in": [tier, tier_int, str(tier)]}
+        except ValueError:
+            query["item_tier"] = tier
     if name:
         query["item_name"] = {"$regex": name, "$options": "i"}
 
@@ -47,7 +52,15 @@ async def list_items(
 async def get_item(item_id: str):
     """Get a single item by its item_id (e.g. 'a001')."""
     db = get_db()
-    item = await db.items.find_one({"item_id": item_id}, _PROJECTION)
+    
+    # Try querying as string or int to bypass MongoDB strict typing
+    or_query = [{"item_id": item_id}, {"item_id": str(item_id)}]
+    try:
+        or_query.append({"item_id": int(item_id)})
+    except ValueError:
+        pass
+
+    item = await db.items.find_one({"$or": or_query}, _PROJECTION)
     if not item:
         raise HTTPException(status_code=404, detail=f"Item with id '{item_id}' not found")
     return item
