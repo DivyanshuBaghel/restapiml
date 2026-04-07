@@ -60,9 +60,12 @@ async def list_heroes(
 
 @router.get("/{hero_id}")
 async def get_hero_by_id(hero_id: int):
-    """Get full hero document by numeric ID."""
+    """Get full hero document by numeric ID (handles both int and string types)."""
     db = get_db()
-    hero = await db.heroes.find_one({"id": hero_id}, _DETAIL_PROJECTION)
+    
+    # Try finding the hero ID as an integer, or as a string if the DB stored it that way
+    hero = await db.heroes.find_one({"$or": [{"id": hero_id}, {"id": str(hero_id)}]}, _DETAIL_PROJECTION)
+    
     if not hero:
         raise HTTPException(status_code=404, detail=f"Hero with id {hero_id} not found")
     return hero
