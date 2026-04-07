@@ -3,6 +3,8 @@ Async MongoDB connection via Motor.
 """
 
 from motor.motor_asyncio import AsyncIOMotorClient
+import certifi
+
 from api.config import MONGO_URI, DB_NAME
 
 _client: AsyncIOMotorClient | None = None
@@ -18,7 +20,7 @@ def get_db():
 async def connect():
     """Open the Motor client and verify the connection."""
     global _client
-    _client = AsyncIOMotorClient(MONGO_URI)
+    _client = AsyncIOMotorClient(MONGO_URI, tlsCAFile=certifi.where())
     # Force a round-trip to verify credentials / network
     await _client.admin.command("ping")
     print(f"✅ Connected to MongoDB ({DB_NAME})")
